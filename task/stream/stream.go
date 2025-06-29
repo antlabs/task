@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package stream2
+package stream
 
 import (
 	"context"
@@ -26,14 +26,14 @@ import (
 )
 
 func init() {
-	driver.Register("stream2", &stream2{})
+	driver.Register("stream", &stream{})
 }
 
-var _ driver.TaskDriver = (*stream2)(nil)
-var _ driver.Tasker = (*stream2)(nil)
-var _ driver.TaskExecutor = (*stream2Executor)(nil)
+var _ driver.TaskDriver = (*stream)(nil)
+var _ driver.Tasker = (*stream)(nil)
+var _ driver.TaskExecutor = (*streamExecutor)(nil)
 
-type stream2 struct {
+type stream struct {
 	initCount      int              // 初始go程数，如果是长驻go程有效果
 	min            int              // 最小go程数
 	max            int64            // 最大go程数
@@ -46,20 +46,20 @@ type stream2 struct {
 	onMessageCount int64            //需要处理的OnMessage个数
 }
 
-func (s *stream2) addOnMessageCount(n int) {
+func (s *stream) addOnMessageCount(n int) {
 	atomic.AddInt64(&s.onMessageCount, int64(n))
 }
 
-func (s *stream2) subOnMessageCount(n int) {
+func (s *stream) subOnMessageCount(n int) {
 	atomic.AddInt64(&s.onMessageCount, int64(n))
 }
 
-func (s *stream2) loadOnMessageCount() int64 {
+func (s *stream) loadOnMessageCount() int64 {
 	return atomic.LoadInt64(&s.onMessageCount)
 }
 
-func (s *stream2) New(ctx context.Context, initCount, min, max int, c *driver.Conf) driver.Tasker {
-	s2 := &stream2{initCount: initCount,
+func (s *stream) New(ctx context.Context, initCount, min, max int, c *driver.Conf) driver.Tasker {
+	s2 := &stream{initCount: initCount,
 		min:      min,
 		max:      int64(max),
 		fn:       make(chan func() bool, max),
@@ -82,7 +82,7 @@ func (s *stream2) New(ctx context.Context, initCount, min, max int, c *driver.Co
 	return s2
 }
 
-func (s *stream2) processLong() {
+func (s *stream) processLong() {
 	for f := range s.fn {
 		if f() {
 			return
@@ -90,7 +90,7 @@ func (s *stream2) processLong() {
 	}
 }
 
-func (s *stream2) processShort() {
+func (s *stream) processShort() {
 	for {
 		select {
 		case f, ok := <-s.fn:
@@ -106,7 +106,7 @@ func (s *stream2) processShort() {
 	}
 }
 
-func (s *stream2) addGoProcessNum(n int) {
+func (s *stream) addGoProcessNum(n int) {
 	for i := 0; i < n; i++ {
 		atomic.AddInt32(&s.goroutines, 1)
 		go func() {
@@ -116,15 +116,15 @@ func (s *stream2) addGoProcessNum(n int) {
 	}
 }
 
-func (s *stream2) lteInit() bool {
+func (s *stream) lteInit() bool {
 	return atomic.LoadInt32(&s.goroutines) <= int32(s.initCount)
 }
 
-func (s *stream2) lteMax() bool {
+func (s *stream) lteMax() bool {
 	return atomic.LoadInt32(&s.goroutines) <= int32(s.max)
 }
 
-func (s *stream2) mainLoopOther() {
+func (s *stream) mainLoopOther() {
 
 	timeout := time.Second
 	tm := time.NewTimer(timeout)
@@ -161,7 +161,7 @@ func (s *stream2) mainLoopOther() {
 }
 
 // 对于短暂任务来说，性能的最佳点是少量go程, 对于这种情况缓慢增加go程数，用于逼近性能最佳点
-func (s *stream2) mainLoopLinux() {
+func (s *stream) mainLoopLinux() {
 	timeout := time.Second
 	tm := time.NewTimer(time.Hour * 24)
 
@@ -233,10 +233,10 @@ func (s *stream2) mainLoopLinux() {
 	}
 }
 
-func (s *stream2) NewExecutor() driver.TaskExecutor {
-	return &stream2Executor{parent: s, list: make([]func() bool, 0, 4)}
+func (s *stream) NewExecutor() driver.TaskExecutor {
+	return &streamExecutor{parent: s, list: make([]func() bool, 0, 4)}
 }
 
-func (s *stream2) GetGoroutines() int {
+func (s *stream) GetGoroutines() int {
 	return int(atomic.LoadInt32(&s.goroutines))
 }

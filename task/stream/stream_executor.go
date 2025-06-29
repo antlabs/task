@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package stream2
+package stream
 
 import (
 	"runtime"
@@ -20,9 +20,9 @@ import (
 	"unsafe"
 )
 
-type stream2Executor struct {
+type streamExecutor struct {
 	list   []func() bool
-	parent *stream2
+	parent *stream
 }
 
 func myLock(mu *sync.Mutex) {
@@ -37,7 +37,7 @@ func myUnlock(mu *sync.Mutex) {
 	}
 }
 
-func (s *stream2Executor) AddTask(mu *sync.Mutex, f func() bool) error {
+func (s *streamExecutor) AddTask(mu *sync.Mutex, f func() bool) error {
 
 	myLock(mu)
 
@@ -67,7 +67,7 @@ func (s *stream2Executor) AddTask(mu *sync.Mutex, f func() bool) error {
 	return nil
 }
 
-func (s *stream2Executor) run(mu *sync.Mutex) bool {
+func (s *streamExecutor) run(mu *sync.Mutex) bool {
 	var f func() bool
 	for i := 0; ; i++ {
 		myLock(mu)
@@ -108,7 +108,7 @@ func (s *stream2Executor) run(mu *sync.Mutex) bool {
 	}
 }
 
-func (s *stream2Executor) Close(mu *sync.Mutex) error {
+func (s *streamExecutor) Close(mu *sync.Mutex) error {
 	myLock(mu)
 
 	s.parent.subOnMessageCount(-len(s.list))

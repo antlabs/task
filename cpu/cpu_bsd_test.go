@@ -1,4 +1,4 @@
-//go:build darwin
+//go:build darwin || freebsd
 
 package cpu
 
@@ -11,15 +11,15 @@ import (
 )
 
 // TestCPUSpike tests the ability to detect a sudden CPU spike
-// This test is Linux-specific and simulates a CPU spike to verify
+// This test is BSD-specific (Darwin/FreeBSD) and simulates a CPU spike to verify
 // that our CPU monitoring code behaves similarly to 'top'
 func TestCPUSpike(t *testing.T) {
 	// Get current process ID
 	pid := os.Getpid()
 	t.Log("Current process ID:", pid)
 
-	if runtime.GOOS != "darwin" {
-		t.Skip("Skipping test on non-Darwin platform")
+	if runtime.GOOS != "darwin" && runtime.GOOS != "freebsd" {
+		t.Skip("Skipping test on non-BSD platform")
 	}
 	// Get initial CPU info
 	initialInfo, err := GetCPUInfo()
@@ -97,7 +97,7 @@ done:
 		t.Errorf("Expected system CPU usage to be at least 0.0%%, got %.2f%%", systemCPUPercent)
 	}
 
-	// On Linux, a single-threaded CPU-intensive process should show significant CPU usage
+	// On BSD, a single-threaded CPU-intensive process should show significant CPU usage
 	// We expect at least 50% of a single core, which translates to different percentages
 	// depending on the number of cores
 	minExpectedProcessCPU := 50.0 / float64(runtime.NumCPU())
@@ -114,8 +114,8 @@ done:
 
 // TestCPUInfoAccuracy tests the accuracy of CPU info by comparing multiple readings
 func TestCPUInfoAccuracy(t *testing.T) {
-	if runtime.GOOS != "darwin" {
-		t.Skip("Skipping test on non-Darwin platform")
+	if runtime.GOOS != "darwin" && runtime.GOOS != "freebsd" {
+		t.Skip("Skipping test on non-BSD platform")
 	}
 	// Get multiple CPU readings to verify consistency
 	readings := make([]CPUInfo, 5)
@@ -145,21 +145,3 @@ func TestCPUInfoAccuracy(t *testing.T) {
 		}
 	}
 }
-
-// func Test_Loop(t *testing.T) {
-// 	numCPU := runtime.NumCPU()
-// 	runtime.GOMAXPROCS(numCPU / 2)
-
-// 	t.Log("NumCPU:", numCPU)
-// 	var wg sync.WaitGroup
-// 	for i := 0; i < numCPU/2; i++ {
-// 		wg.Add(1)
-// 		go func() {
-// 			defer wg.Done()
-// 			for {
-// 			}
-// 		}()
-// 	}
-
-// 	wg.Wait()
-// }

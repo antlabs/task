@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package stream
+package onebyone
 
 import (
 	"context"
@@ -25,51 +25,51 @@ import (
 )
 
 func init() {
-	driver.Register("stream", &taskStream{})
+	driver.Register("onebyone", &taskOneByOne{})
 }
 
-var _ driver.TaskDriver = (*taskStream)(nil)
-var _ driver.Tasker = (*taskStream)(nil)
-var _ driver.TaskExecutor = (*taskStream)(nil)
+var _ driver.TaskDriver = (*taskOneByOne)(nil)
+var _ driver.Tasker = (*taskOneByOne)(nil)
+var _ driver.TaskExecutor = (*taskOneByOne)(nil)
 
-type taskStream struct {
-	streamChan chan func() bool
+type taskOneByOne struct {
+	oneByOneChan chan func() bool
 	sync.Once
 	closed   uint32
 	currency int64
-	parent   *taskStream
+	parent   *taskOneByOne
 }
 
-func (t *taskStream) loop() {
-	for cb := range t.streamChan {
+func (t *taskOneByOne) loop() {
+	for cb := range t.oneByOneChan {
 		cb()
 	}
 }
 
 // 这里构造了一个新的实例
-func (t *taskStream) New(ctx context.Context, initCount, min, max int, c *driver.Conf) driver.Tasker {
+func (t *taskOneByOne) New(ctx context.Context, initCount, min, max int, c *driver.Conf) driver.Tasker {
 	return t
 }
 
 // 创建一个执行器，由于没有node的概念，这里直接返回自己
-func (t *taskStream) NewExecutor() driver.TaskExecutor {
-	var t2 taskStream
+func (t *taskOneByOne) NewExecutor() driver.TaskExecutor {
+	var t2 taskOneByOne
 	atomic.AddInt64(&t.currency, 1)
 	t2.init()
 	t2.parent = t
 	return &t2
 }
 
-func (t *taskStream) GetGoroutines() int {
+func (t *taskOneByOne) GetGoroutines() int {
 	return int(atomic.LoadInt64(&t.currency))
 } // 获取goroutine数
 
-func (t *taskStream) init() {
-	t.streamChan = make(chan func() bool, runtime.NumCPU())
+func (t *taskOneByOne) init() {
+	t.oneByOneChan = make(chan func() bool, runtime.NumCPU())
 	go t.loop()
 }
 
-func (t *taskStream) AddTask(mu *sync.Mutex, f func() bool) (err error) {
+func (t *taskOneByOne) AddTask(mu *sync.Mutex, f func() bool) (err error) {
 	if atomic.LoadUint32(&t.closed) == 1 {
 		return nil
 	}
@@ -80,15 +80,15 @@ func (t *taskStream) AddTask(mu *sync.Mutex, f func() bool) (err error) {
 			return
 		}
 	}()
-	t.streamChan <- f
+	t.oneByOneChan <- f
 	// TODO: 阻塞的情况如何处理?
 	// greatws 处理overflow的fd
 	return nil
 }
 
-func (t *taskStream) Close(mu *sync.Mutex) error {
+func (t *taskOneByOne) Close(mu *sync.Mutex) error {
 	t.Do(func() {
-		close(t.streamChan)
+		close(t.oneByOneChan)
 		atomic.AddInt64(&t.parent.currency, -1)
 		atomic.StoreUint32(&t.closed, 1)
 	})
