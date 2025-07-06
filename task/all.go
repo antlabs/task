@@ -17,7 +17,7 @@ package task
 
 import (
 	// Import all task drivers to ensure they register themselves
+	_ "github.com/antlabs/task/task/elastic"
 	_ "github.com/antlabs/task/task/io"
 	_ "github.com/antlabs/task/task/onebyone"
-	_ "github.com/antlabs/task/task/stream"
 )

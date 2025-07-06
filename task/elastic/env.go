@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package stream
+package elastic
 
 const (
-	envLoopKey        = "GREATWS_STREAM2_LOOP"
+	envLoopKey        = "GREATWS_ELASTIC_LOOP"
 	envLoopShortValue = "short" // go程短驻
 )
