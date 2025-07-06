@@ -24,8 +24,12 @@ import (
 	"github.com/antlabs/task/task/driver"
 )
 
+const (
+	onebyoneDriverName = "onebyone"
+)
+
 func init() {
-	driver.Register("onebyone", &taskOneByOne{})
+	driver.Register(onebyoneDriverName, &taskOneByOne{})
 }
 
 var _ driver.TaskDriver = (*taskOneByOne)(nil)

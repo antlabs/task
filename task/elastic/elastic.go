@@ -25,8 +25,12 @@ import (
 	"github.com/antlabs/task/task/driver"
 )
 
+const (
+	elasticDriverName = "elastic"
+)
+
 func init() {
-	driver.Register("stream", &stream{})
+	driver.Register(elasticDriverName, &stream{})
 }
 
 var _ driver.TaskDriver = (*stream)(nil)

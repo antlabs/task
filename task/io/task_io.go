@@ -22,8 +22,12 @@ import (
 	"github.com/antlabs/task/task/driver"
 )
 
+const (
+	ioDriverName = "io"
+)
+
 func init() {
-	driver.Register("io", &taskIO{})
+	driver.Register(ioDriverName, &taskIO{})
 }
 
 var _ driver.TaskDriver = (*taskIO)(nil)
